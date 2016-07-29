@@ -1,6 +1,6 @@
 {
   "name": "tfl-line-status",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "TFL Line Status API",
   "homepage": "https://github.com/paolo-chiabrera/tfl-line-status",
   "author": {
