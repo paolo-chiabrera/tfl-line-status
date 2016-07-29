@@ -3,75 +3,84 @@ import sinon from 'sinon';
 
 import _ from 'lodash';
 
-import mapLineStatus from '../../lib/util/mapLineStatus';
+import main from '../../lib/modules/main';
 
 import lineStatusParsedMock from '../mocks/line-status-parsed.mock';
 import lineStatusMappedMock from '../mocks/line-status-mapped.mock';
 
 describe('mapLineStatus', function () {
+
+  let mapLineStatus = null;
+
+  beforeEach(function () {
+    mapLineStatus = sinon.spy(main, 'mapLineStatus');
+  });
+
+  afterEach(function () {
+    mapLineStatus.restore();
+  });
+
   it('should be defined', function () {
     expect(mapLineStatus).to.be.a('function');
   });
 
-  it('should return if a callback is not passed', sinon.test(function () {
-    const cb = this.spy();
+  it('should throw the error: feed is not an Object', function () {
+    const err = new Error('feed is not an Object');
 
-    mapLineStatus('');
+    try {
+      mapLineStatus();
+    } catch (e) {
+      expect(e).to.eql(err);
+    }
+  });
 
-    sinon.assert.notCalled(cb);
-  }));
+  it('should throw the error: feed is not an Object', function () {
+    const err = new Error('feed is not an Object');
 
-  it('should raise the error to the callback: feed is not an Object', sinon.test(function () {
-    const cb = this.spy();
+    try {
+      mapLineStatus(null);
+    } catch (e) {
+      expect(e).to.eql(err);
+    }
+  });
 
-    const feed = '';
+  it('should throw the error: ArrayOfLineStatus is not an Object', function () {
+    const err = new Error('ArrayOfLineStatus is not an Object');
 
-    mapLineStatus(feed, cb);
+    try {
+      mapLineStatus({});
+    } catch (e) {
+      expect(e).to.eql(err);
+    }
+  });
 
-    sinon.assert.calledWith(cb, 'feed is not an Object');
-  }));
-
-  it('should raise the error to the callback: ArrayOfLineStatus is not an Object', sinon.test(function () {
-    const cb = this.spy();
-
-    const feed = {};
-
-    mapLineStatus(feed, cb);
-
-    sinon.assert.calledWith(cb, 'ArrayOfLineStatus is not an Object');
-  }));
-
-  it('should raise the error to the callback: LineStatus is not an Array', sinon.test(function () {
-    const cb = this.spy();
+  it('should throw the error: LineStatus is not an Array', function () {
+    const err = new Error('LineStatus is not an Array');
 
     const feed = {
       ArrayOfLineStatus: {}
     };
 
-    mapLineStatus(feed, cb);
+    try {
+      mapLineStatus(feed);
+    } catch (e) {
+      expect(e).to.eql(err);
+    }
+  });
 
-    sinon.assert.calledWith(cb, 'LineStatus is not an Array');
-  }));
-
-  it('should map an empty Array', sinon.test(function () {
-    const cb = this.spy();
-
+  it('should map an empty Array', function () {
     const feed = {
       ArrayOfLineStatus: {
         LineStatus: []
       }
     };
 
-    const feedMapped = [];
+    const feedMapped = mapLineStatus(feed);
 
-    mapLineStatus(feed, cb);
-
-    sinon.assert.calledWith(cb, null, feedMapped);
-  }));
+    expect(feedMapped).to.eql([]);
+  });
 
   it('should catch any error from lodash mapping', sinon.test(function () {
-    const cb = this.spy();
-
     const fakeErr = new Error('fake error');
 
     const map = this.stub(_, 'map', () => {
@@ -84,18 +93,17 @@ describe('mapLineStatus', function () {
       }
     };
 
-    mapLineStatus(feed, cb);
-
-    sinon.assert.calledOnce(map);
-    sinon.assert.calledOnce(cb);
-    sinon.assert.calledWith(cb, fakeErr);
+    try {
+      mapLineStatus(feed);
+    } catch (e) {
+      sinon.assert.calledOnce(map);
+      expect(e).to.eql(fakeErr);
+    }
   }));
 
-  it('should map multiple LineStatus correctly', sinon.test(function () {
-    const cb = this.spy();
+  it('should map multiple LineStatus correctly', function () {
+    const feedMapped = mapLineStatus(lineStatusParsedMock);
 
-    mapLineStatus(lineStatusParsedMock, cb);
-
-    sinon.assert.calledWith(cb, null, lineStatusMappedMock);
-  }));
+    expect(feedMapped).to.eql(lineStatusMappedMock);
+  });
 });

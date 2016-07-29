@@ -3,7 +3,7 @@ import sinon from 'sinon';
 
 import needle from 'needle';
 
-import loadLineStatusXML from '../../lib/util/loadLineStatusXML';
+import loadLineStatusXML from '../../lib/modules/loadLineStatusXML';
 
 describe('loadLineStatusXML', function () {
   it('should be defined', function () {
