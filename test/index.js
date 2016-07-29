@@ -1,11 +1,8 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
 
-import async from 'async';
-import Q from 'q';
-
 import TflLineStatus from '../lib/index';
-import util from '../lib/util/main';
+import main from '../lib/modules/main';
 
 import lineStatusParsedMock from './mocks/line-status-parsed.mock';
 import lineStatusMappedMock from './mocks/line-status-mapped.mock';
@@ -17,22 +14,55 @@ describe('tfl-line-status', function () {
     expect(tflLineStatus).to.be.an('object');
   });
 
-  describe('_getStatus', function () {
+  describe('getLines', function () {
     it('should be defined', function () {
-      expect(tflLineStatus._getStatus).to.be.a('function');
+      expect(tflLineStatus.getLines).to.be.a('function');
     });
 
-    it('should return an error from async.waterfall', sinon.test(function (done) {
+    it('should return the lines', function () {
+      expect(tflLineStatus.getLines()).to.eql(Object.keys(main.mapCode.codeToId));
+    });
+  });
+
+  describe('setLines', function () {
+    it('should be defined', function () {
+      expect(tflLineStatus.setLines).to.be.a('function');
+    });
+
+    it('should not set the lines', function () {
+      const tflLineStatus = new TflLineStatus();
+      const newLines = [];
+
+      tflLineStatus.setLines(newLines);
+
+      expect(tflLineStatus.getLines()).to.not.eql(newLines);
+    });
+
+    it('should set the lines', function () {
+      const tflLineStatus = new TflLineStatus();
+      const newLines = ['X', 'Y', 'Z'];
+
+      tflLineStatus.setLines(newLines);
+
+      expect(tflLineStatus.getLines()).to.eql(newLines);
+    });
+  });
+
+  describe('_getAllStatuses', function () {
+    it('should be defined', function () {
+      expect(tflLineStatus._getAllStatuses).to.be.a('function');
+    });
+
+    it('should return an error from loadLineStatusXML', sinon.test(function (done) {
       const success = this.spy();
       const fakeError = new Error('fake error');
 
-      const waterfall = this.stub(async, 'waterfall', (list, callback) => {
+      const loadLineStatusXML = this.stub(main, 'loadLineStatusXML', (callback) => {
         callback(fakeError);
       });
 
-      tflLineStatus._getStatus().then(success, (err) => {
+      tflLineStatus._getAllStatuses().then(success, (err) => {
         try {
-          sinon.assert.calledOnce(waterfall);
           sinon.assert.notCalled(success);
           expect(err).to.eql(fakeError);
         } catch (e) {
@@ -40,70 +70,85 @@ describe('tfl-line-status', function () {
           return;
         }
 
+        loadLineStatusXML.restore();
+
         done();
       });
     }));
 
-    it('should trigger async.waterfall', sinon.test(function () {
-      const waterfall = this.spy(async, 'waterfall');
+    it('should return an error from mapLineStatus', sinon.test(function () {
+      const success = this.spy();
+      const fakeError = new Error('fake error');
 
-      tflLineStatus._getStatus();
-
-      sinon.assert.calledOnce(waterfall);
-    }));
-
-    it('should trigger the callback', sinon.test(function (done) {
-      const fail = this.spy();
-
-      const loadLineStatusXML = this.stub(util, 'loadLineStatusXML', (callback) => {
+      const loadLineStatusXML = this.stub(main, 'loadLineStatusXML', (callback) => {
         callback(null, lineStatusParsedMock);
       });
 
-      tflLineStatus._getStatus().then((res) => {
+      const mapLineStatus = this.stub(main, 'mapLineStatus', (callback) => {
+        throw fakeError;
+      });
+
+      tflLineStatus._getAllStatuses().then(success, (err) => {
         try {
+          sinon.assert.notCalled(success);
           sinon.assert.calledOnce(loadLineStatusXML);
-          sinon.assert.notCalled(fail);
-          expect(res).to.eql(res);
+          expect(err).to.eql(fakeError);
         } catch (e) {
           done(e);
           return;
         }
+
+        loadLineStatusXML.restore();
+        mapLineStatus.restore();
+
+        done();
+      });
+    }));
+
+    it('should work correctly', sinon.test(function () {
+      const fail = this.spy();
+      const fakeError = new Error('fake error');
+
+      const loadLineStatusXML = this.stub(main, 'loadLineStatusXML', (callback) => {
+        callback(null, lineStatusParsedMock);
+      });
+
+      const mapLineStatus = this.spy(main, 'mapLineStatus');
+
+      tflLineStatus._getAllStatuses().then(res => {
+        try {
+          sinon.assert.notCalled(fail);
+          sinon.assert.calledOnce(loadLineStatusXML);
+          sinon.assert.calledOnce(mapLineStatus);
+          expect(res).to.eql(lineStatusMappedMock);
+        } catch (e) {
+          done(e);
+          return;
+        }
+
+        loadLineStatusXML.restore();
+        mapLineStatus.restore();
 
         done();
       }, fail);
     }));
   });
 
-  describe('getStatus', function () {
-
-    beforeEach(function () {
-      tflLineStatus.getStatus.clear();
-    });
-
+  describe('getAllStatuses', function () {
     it('should be defined', function () {
-      expect(tflLineStatus.getStatus).to.be.a('function');
+      expect(tflLineStatus.getAllStatuses).to.be.a('function');
     });
-
-    it('should trigger async.waterfall', sinon.test(function () {
-      const waterfall = this.spy(async, 'waterfall');
-
-      tflLineStatus.getStatus();
-
-      sinon.assert.calledOnce(waterfall);
-    }));
 
     it('should leverage the memoize cache', sinon.test(function (done) {
-      const waterfall = this.spy(async, 'waterfall');
       const fail = this.spy();
       const fail2 = this.spy();
 
-      const loadLineStatusXML = this.stub(util, 'loadLineStatusXML', (callback) => {
+      const loadLineStatusXML = this.stub(main, 'loadLineStatusXML', (callback) => {
         callback(null, lineStatusParsedMock);
       });
 
-      tflLineStatus.getStatus().then(res => {
+      tflLineStatus.getAllStatuses().then(res => {
         try {
-          sinon.assert.calledOnce(waterfall);
           sinon.assert.calledOnce(loadLineStatusXML);
           sinon.assert.notCalled(fail);
           expect(res).to.eql(lineStatusMappedMock);
@@ -112,9 +157,8 @@ describe('tfl-line-status', function () {
           return;
         }
 
-        tflLineStatus.getStatus().then(res2 => {
+        tflLineStatus.getAllStatuses().then(res2 => {
           try {
-            sinon.assert.calledOnce(waterfall);
             sinon.assert.calledOnce(loadLineStatusXML);
             sinon.assert.notCalled(fail2);
             expect(res2).to.eql(lineStatusMappedMock);
@@ -123,114 +167,33 @@ describe('tfl-line-status', function () {
             return;
           }
 
+          loadLineStatusXML.restore();
+
           done();
         }, fail2);
       }, fail);
     }));
   });
 
-  describe('getStatusByKey', function () {
-
-    before(function () {
-      sinon.config = {
-        useFakeTimers: false
-      };
-    });
-
-    beforeEach(function () {
-      tflLineStatus.getStatus.clear();
-    });
-
+  describe('getLineStatusByCode', function () {
     it('should be defined', function () {
-      expect(tflLineStatus.getStatusByKey).to.be.a('function');
+      expect(tflLineStatus.getLineStatusByCode).to.be.a('function');
     });
 
-    it('should return the error: key is not a valid String', sinon.test(function (done) {
-      const success = this.spy();
-      const getStatus = this.spy(tflLineStatus, 'getStatus');
-
-      tflLineStatus.getStatusByKey(null).then(success, (err) => {
-        try {
-          sinon.assert.notCalled(getStatus);
-          sinon.assert.notCalled(success);
-          expect(err).to.be.an('error');
-          expect(err.message).to.equal('key is not a valid String');
-        } catch (e) {
-          done(e);
-          return;
-        }
-
-        done();
-      });
-    }));
-
-    it('should return the error: list is not a valid Array, String or Number', sinon.test(function (done) {
-      const success = this.spy();
-      const getStatus = this.spy(tflLineStatus, 'getStatus');
-
-      tflLineStatus.getStatusByKey('id').then(success, (err) => {
-        try {
-          sinon.assert.notCalled(getStatus);
-          sinon.assert.notCalled(success);
-          expect(err).to.be.an('error');
-          expect(err.message).to.equal('list is not a valid Array, String or Number');
-        } catch (e) {
-          done(e);
-          return;
-        }
-
-        done();
-      });
-    }));
-
-    it('should return an error raised by getStatus', sinon.test(function (done) {
-      const success = this.spy();
-      const fakeError = new Error('fake error');
-
-      const getStatus = this.stub(tflLineStatus, 'getStatus', () => {
-        const deferred = Q.defer();
-
-        setTimeout(function () {
-          deferred.reject(fakeError);
-        }, 10);
-
-        return deferred.promise;
-      });
-
-      tflLineStatus.getStatusByKey('id', ['1']).then(success, (err) => {
-
-        try {
-          sinon.assert.notCalled(success);
-          expect(err).to.eql(fakeError);
-        } catch (e) {
-          done(e);
-          return;
-        }
-
-        getStatus.restore();
-
-        done();
-      });
-    }));
-
-    it('should get the correct status, given id = "1"', sinon.test(function (done) {
+    it('should return only the line status filtered by code', sinon.test(function (done) {
       const fail = this.spy();
 
-      const expected = [lineStatusMappedMock[0]];
-
-      const getStatus = this.stub(tflLineStatus, 'getStatus', (callback) => {
-        const deferred = Q.defer();
-
-        setTimeout(function () {
-          deferred.resolve(lineStatusMappedMock);
-        }, 10);
-
-        return deferred.promise;
+      const loadLineStatusXML = this.stub(main, 'loadLineStatusXML', (callback) => {
+        callback(null, lineStatusParsedMock);
       });
 
-      tflLineStatus.getStatusByKey('id', '1').then((res) => {
+      const expected = lineStatusMappedMock[0];
 
+      tflLineStatus.getAllStatuses.clear();
+
+      tflLineStatus.getLineStatusByCode(expected.code).then(res => {
         try {
+          sinon.assert.calledOnce(loadLineStatusXML);
           sinon.assert.notCalled(fail);
           expect(res).to.eql(expected);
         } catch (e) {
@@ -238,30 +201,67 @@ describe('tfl-line-status', function () {
           return;
         }
 
-        getStatus.restore();
+        loadLineStatusXML.restore();
+
+        done();
+      }, fail);
+    }));
+  });
+
+  describe('getLineStatus', function () {
+    let loadLineStatusXML = null;
+
+    beforeEach(function () {
+      loadLineStatusXML = sinon.stub(main, 'loadLineStatusXML', (callback) => {
+        callback(null, lineStatusParsedMock);
+      });
+    });
+
+    afterEach(function () {
+      loadLineStatusXML.restore();
+    });
+
+    it('should be defined', function () {
+      expect(tflLineStatus.getLineStatus).to.be.a('function');
+    });
+
+    it('should wire getAllStatuses', sinon.test(function (done) {
+      const fail = this.spy();
+
+      tflLineStatus.getAllStatuses.clear();
+
+      const getAllStatuses = this.spy(tflLineStatus, 'getAllStatuses');
+
+      tflLineStatus.getLineStatus().then(res => {
+        try {
+          sinon.assert.calledOnce(getAllStatuses);
+          sinon.assert.calledOnce(loadLineStatusXML);
+          sinon.assert.notCalled(fail);
+          expect(res).to.eql(lineStatusMappedMock);
+        } catch (e) {
+          done(e);
+          return;
+        }
+
+        getAllStatuses.restore();
 
         done();
       }, fail);
     }));
 
-    it('should get the correct status, given id = ["1"]', sinon.test(function (done) {
+    it('should wire getLineStatusByCode', sinon.test(function (done) {
       const fail = this.spy();
 
-      const expected = [lineStatusMappedMock[0]];
+      tflLineStatus.getAllStatuses.clear();
 
-      const getStatus = this.stub(tflLineStatus, 'getStatus', (callback) => {
-        const deferred = Q.defer();
+      const getLineStatusByCode = this.spy(tflLineStatus, 'getLineStatusByCode');
 
-        setTimeout(function () {
-          deferred.resolve(lineStatusMappedMock);
-        }, 10);
+      const expected = lineStatusMappedMock[0];
 
-        return deferred.promise;
-      });
-
-      tflLineStatus.getStatusByKey('id', ['1']).then((res) => {
-
+      tflLineStatus.getLineStatus(expected.code).then(res => {
         try {
+          sinon.assert.calledOnce(getLineStatusByCode);
+          sinon.assert.calledOnce(loadLineStatusXML);
           sinon.assert.notCalled(fail);
           expect(res).to.eql(expected);
         } catch (e) {
@@ -269,7 +269,7 @@ describe('tfl-line-status', function () {
           return;
         }
 
-        getStatus.restore();
+        getLineStatusByCode.restore();
 
         done();
       }, fail);

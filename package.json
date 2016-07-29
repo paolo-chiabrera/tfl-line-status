@@ -1,6 +1,6 @@
 {
   "name": "tfl-line-status",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "TFL Line Status API",
   "homepage": "https://github.com/paolo-chiabrera/tfl-line-status",
   "author": {
@@ -49,7 +49,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "async": "^2.0.1",
     "lodash": "^4.13.1",
     "memoizee": "^0.4.1",
     "needle": "^1.0.0",

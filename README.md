@@ -9,7 +9,7 @@ Maintained by [Paolo Chiabrera](https://github.com/paolo-chiabrera).
 ## Install
 
 ```
-$ npm install tfl-line-status
+$ npm i tfl-line-status
 ```
 
 ## Usage
@@ -30,42 +30,75 @@ var tflLineStatus = new TflLineStatus();
 
 ## API
 
-### tflLineStatus.getStatus()
+### tflLineStatus.getLines()
+
+it returns all the line codes (including also not tube lines, such as DLR)
+
 ```
-const promise = tflLineStatus.getStatus();
+const lines = tflLineStatus.getLines();
+
+/* response sample */
+
+['B', 'C', 'CI', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W', 'DLR', 'OVG', 'RAIL', 'TRAMS']
+
+```
+
+### tflLineStatus.getLineStatus(code)
+
+`code` (optional) accepted values are: ['B', 'C', 'CI', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W', 'DLR', 'OVG', 'RAIL', 'TRAMS']
+
+```
+const promise = tflLineStatus.getLineStatus(code);
 
 promise.then(function (response) {
-    /* here you get the current status of all the lines */
+    /* here you get the line status */
 }, function (err) {
     /* too bad, something wrong happened */
 });
 ```
 
-### tflLineStatus.getStatusByKey(key, values)
-
-`key` must be a String
-`values` can be either a String, a Number or an Array of String/Number
-
-`response` will be always an Array containing at least 1 line status
+if a valid code is passed, the promise will return the relative line status object
 
 ```
-const promise = tflLineStatus.getStatusByKey('name', 'central');
+const promise = tflLineStatus.getLineStatus('B');
 
-promise.then(response => {
-    /* here you get ONLY the current status of CENTRAL line */
-}, err => {
-    /* too bad, something wrong happened */
-});
+/* response sample */
+
+{
+  active: true,
+  code: 'B',
+  desc: 'Good Service',
+  details: '',
+  id: '1',
+  name: 'bakerloo',
+  status: 'GS'
+}
 ```
 
-```
-const promise = tflLineStatus.getStatusByKey('name', ['central', 'victoria']);
+if no code is provided, all line statuses will be retrieved and returned as an ordered array
 
-promise.then(response => {
-    /* here you get ONLY the current status of CENTRAL and VICTORIA lines */
-}, err => {
-    /* too bad, something wrong happened */
-});
+```
+const promise = tflLineStatus.getLineStatus('B');
+
+/* response sample */
+
+[{
+  active: true,
+  code: 'B',
+  desc: 'Good Service',
+  details: '',
+  id: '1',
+  name: 'bakerloo',
+  status: 'GS'
+}, {
+  active: true,
+  code: 'C',
+  desc: 'Good Service',
+  details: '',
+  id: '2',
+  name: 'central',
+  status: 'GS'
+}]
 ```
 
 ## Notes

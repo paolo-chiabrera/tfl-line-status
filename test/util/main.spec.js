@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 
-import util from '../../lib/util/main';
+import util from '../../lib/modules/main';
 
 describe('main', function () {
   it('should be defined', function () {
@@ -13,5 +13,9 @@ describe('main', function () {
 
   it('should expose: mapLineStatus', function () {
     expect(util.mapLineStatus).to.be.a('function');
+  });
+
+  it('should expose: mapCode', function () {
+    expect(util.mapCode).to.be.an('object');
   });
 });
